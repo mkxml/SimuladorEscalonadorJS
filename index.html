@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simulador Escalonador de Processos</title>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <div id="main">
+      <header>
+        <h1>Simulador do Escalonador de Processos</h1>
+      </header>
+      <form id="parametros-simulacao" action="">
+        <fieldset>
+          <label for="quantum">Quantum (ms):</label>
+          <input id="quantum" type="number" required>
+        </fieldset>
+        <fieldset>
+          <label for="quantidadePorMinuto">Quantidade/minuto:</label>
+          <input id="quantidadePorMinuto" type="number" required>
+        </fieldset>
+        <fieldset>
+          <label for="tempoDeVida">Tempo de Vida (ms):</label>
+          <input id="tempoDeVida" type="number" required>
+        </fieldset>
+        <fieldset>
+          <label for="chanceDeEspera">Chance de Espera (%):</label>
+          <input id="chanceDeEspera" type="number" required>
+        </fieldset>
+        <input type="submit" id="btiniciar" value="Inciar Simulação">
+      </form>
+      <table id="tabela-processos"></table>
+    </div>
+    <footer>Projeto do Grupo 4 - Sistemas Operacionais I - Universidade Feevale</footer>
+    <script src="escalonador.js"></script>
+  </body>
+</html>
