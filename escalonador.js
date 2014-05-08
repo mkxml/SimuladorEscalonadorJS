@@ -77,7 +77,6 @@
 
     alteraProcesso: function(pid, codEstado) {
       var processo = document.querySelector("#p" + pid);
-      console.log("Cod ESTADO: " + codEstado);
       var estado = this.getObjetoEstado(codEstado);
       var elementoTexto = processo.querySelector("td:last-child");
       elementoTexto.className = estado.cor;
@@ -85,16 +84,21 @@
     },
 
     removeProcesso: function(pid) {
+      try {
+        var processo = document.querySelector("#p" + pid);
 
-      var processo = document.querySelector("#p" + pid);
+        processo.parentNode.removeChild(processo);
 
-      processo.parentNode.removeChild(processo);
+        this.quantidadeProcessos--;
 
-      this.quantidadeProcessos--;
-
-      if(this.quantidadeProcessos <= 0) {
-        var linha = "<tr><td>Nenhum processo</td></tr>";
-        this.tabela.innerHTML = linha;
+        if(this.quantidadeProcessos <= 0) {
+          var linha = "<tr><td>Nenhum processo</td></tr>";
+          this.tabela.innerHTML = linha;
+        }
+      }
+      catch(e) {
+        if(debug)
+          console.error("Processo já removido: " + e.message);
       }
     },
 
@@ -149,6 +153,8 @@
       }
       Simulador.adicionaProcesso(pid, this.estado);
 
+      window.setTimeout(this.encerrar.bind(this), this.tempoDeVida);
+
       //Processo pronto
       this.pronto();
     }
@@ -158,24 +164,31 @@
     };
 
     Processo.prototype.pronto = function() {
-      this.estado = Estado.PRONTO;
-      Simulador.alteraProcesso(this.pid, this.estado);
+      if(this.estado !== Estado.ENCERRADO) {
+        this.estado = Estado.PRONTO;
+        Simulador.alteraProcesso(this.pid, this.estado);
+      }
     };
 
     Processo.prototype.esperar = function() {
-      this.estado = Estado.EM_ESPERA;
-      Simulador.alteraProcesso(this.pid, this.estado);
+      if(this.estado === Estado.EM_EXECUCAO) {
+        this.estado = Estado.EM_ESPERA;
+        Simulador.alteraProcesso(this.pid, this.estado);
+      }
     };
 
     Processo.prototype.executar = function() {
-      this.estado = Estado.EM_EXECUCAO;
-      Simulador.alteraProcesso(this.pid, this.estado);
+      if(this.estado === Estado.PRONTO) {
+        this.estado = Estado.EM_EXECUCAO;
+        Simulador.alteraProcesso(this.pid, this.estado);
+      }
     };
 
     Processo.prototype.encerrar = function() {
       this.estado = Estado.ENCERRADO;
       Simulador.alteraProcesso(this.pid, this.estado);
-      window.setTimeout(this.destruir.bind(this), 3000);
+      if(!this.debug)
+        window.setTimeout(this.destruir.bind(this), 30000);
       Escalonador.finalizarProcesso(this.pid);
     };
 
@@ -226,7 +239,7 @@
 
     ultimoIndice: 0,
 
-    debug: true,
+    debug: false,
 
     verbose: function() {
 
@@ -266,7 +279,7 @@
         this.geraLoteDeProcessos();
       }.bind(this), 61000);
 
-      this.timerExecucao = window.setInterval(this.verificaQuantum.bind(this), 1000);
+      this.timerExecucao = window.setInterval(this.verificaQuantum.bind(this), 1);
 
     },
 
@@ -353,20 +366,7 @@
 
     verificaQuantum: function() {
       if (this.quantum !== null) {
-        this.tempoDecorrido += 1000;
-        if (this.processoEmExecucao) {
-          this.processoEmExecucao.tempoDeVida -= 1000;
-
-          if (this.processoEmExecucao.tempoDeVida <= 0) {
-            var processoTemp = this.processoEmExecucao;
-            this.trocaProcesso();
-            processoTemp.encerrar();
-            if (this.tempoDecorrido >= this.quantum) {
-              this.tempoDecorrido = 0;
-            }
-            return;
-          }
-        }
+        this.tempoDecorrido += 1;
 
         if (this.tempoDecorrido >= this.quantum) {
           this.trocaProcesso();
