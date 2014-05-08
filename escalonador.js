@@ -17,6 +17,8 @@
     quantidadeProcessos: 0,
     tabela: document.querySelector("#tabela-processos"),
 
+    debug: false,
+
     iniciar: function() {
       var quantum = document.querySelector("#quantum").value.trim();
       var quantidadePorMinuto = document.querySelector("#quantidadePorMinuto").value.trim();
@@ -24,7 +26,8 @@
       var chanceDeEspera = document.querySelector("#chanceDeEspera").value.trim();
       var valido = true;
 
-      valido = this.validaInput(1, quantum, quantidadePorMinuto, tempoDeVida, chanceDeEspera);
+      valido = this.validaInput(1, quantum, quantidadePorMinuto, tempoDeVida) &&
+        this.validaInput(0, chanceDeEspera);
 
       if(valido) {
         this.tabela.innerHTML = "";
@@ -76,11 +79,17 @@
     },
 
     alteraProcesso: function(pid, codEstado) {
-      var processo = document.querySelector("#p" + pid);
-      var estado = this.getObjetoEstado(codEstado);
-      var elementoTexto = processo.querySelector("td:last-child");
-      elementoTexto.className = estado.cor;
-      elementoTexto.innerText = estado.nome;
+      try {
+        var processo = document.querySelector("#p" + pid);
+        var estado = this.getObjetoEstado(codEstado);
+        var elementoTexto = processo.querySelector("td:last-child");
+        elementoTexto.className = estado.cor;
+        elementoTexto.innerText = estado.nome;
+      }
+      catch(e) {
+        if(this.debug)
+          console.error("Processo já removido: " + e.message);
+      }
     },
 
     removeProcesso: function(pid) {
@@ -97,7 +106,7 @@
         }
       }
       catch(e) {
-        if(debug)
+        if(this.debug)
           console.error("Processo já removido: " + e.message);
       }
     },
@@ -185,11 +194,13 @@
     };
 
     Processo.prototype.encerrar = function() {
-      this.estado = Estado.ENCERRADO;
-      Simulador.alteraProcesso(this.pid, this.estado);
-      if(!this.debug)
-        window.setTimeout(this.destruir.bind(this), 30000);
-      Escalonador.finalizarProcesso(this.pid);
+      if(this.estado !== Estado.ENCERRADO) {
+        this.estado = Estado.ENCERRADO;
+        Simulador.alteraProcesso(this.pid, this.estado);
+        if(!this.debug)
+          window.setTimeout(this.destruir.bind(this), 3000);
+        Escalonador.finalizarProcesso(this.pid);
+      }
     };
 
     Processo.prototype.destruir = function() {
@@ -270,6 +281,20 @@
       this.tempoDeVida = opcoes.tempoDeVida;
       this.chanceDeEspera = opcoes.chanceDeEspera;
 
+      this.processos = {};
+      this.proxPid = null;
+      this.processoEmExecucao = null;
+      this.tempoDecorrido = 0;
+
+      if(this.timerMinuto)
+        window.clearInterval(this.timerMinuto);
+
+      if(this.timerSegundo)
+        window.clearTimeout(this.timerSegundo);
+
+      if(this.timerExecucao)
+        window.clearInterval(this.timerExecucao);
+
       this.processosNoMinuto = 0;
       this.geraLoteDeProcessos();
 
@@ -279,7 +304,7 @@
         this.geraLoteDeProcessos();
       }.bind(this), 61000);
 
-      this.timerExecucao = window.setInterval(this.verificaQuantum.bind(this), 1);
+      this.timerExecucao = window.setInterval(this.trocaProcesso.bind(this), this.quantum);
 
     },
 
@@ -339,7 +364,7 @@
       //Parando execução do processo atual se existente e fora da espera
       if(this.processoEmExecucao !== null) {
         //Pula processos em espera
-        if(this.processoEmExecucao.getEstado() == Estado.EM_ESPERA) {
+        if(this.processoEmExecucao.getEstado() === Estado.EM_ESPERA) {
           this.indexEmExecucao++;
           return this.trocaProcesso();
         }
@@ -352,7 +377,7 @@
 
       //Executa o próximo processo se ele existir
       if (processo) {
-        if(processo.getEstado() == Estado.PRONTO) {
+        if(processo.getEstado() === Estado.PRONTO) {
           processo.executar();
         }
 
@@ -362,17 +387,6 @@
         this.processoEmExecucao = null;
       }
 
-    },
-
-    verificaQuantum: function() {
-      if (this.quantum !== null) {
-        this.tempoDecorrido += 1;
-
-        if (this.tempoDecorrido >= this.quantum) {
-          this.trocaProcesso();
-          this.tempoDecorrido = 0;
-        }
-      }
     },
 
     criaNovoProcesso: function() {
