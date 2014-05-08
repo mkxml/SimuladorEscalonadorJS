@@ -24,7 +24,8 @@
       var chanceDeEspera = document.querySelector("#chanceDeEspera").value.trim();
       var valido = true;
 
-      valido = this.validaInput(1, quantum, quantidadePorMinuto, tempoDeVida, chanceDeEspera);
+      valido = this.validaInput(1, quantum, quantidadePorMinuto, tempoDeVida) &&
+        this.validaInput(0, chanceDeEspera);
 
       if(valido) {
         this.tabela.innerHTML = "";
