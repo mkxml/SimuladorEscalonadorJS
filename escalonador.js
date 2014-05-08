@@ -79,8 +79,8 @@
       var processo = document.querySelector("#p" + pid);
       console.log("Cod ESTADO: " + codEstado);
       var estado = this.getObjetoEstado(codEstado);
-      processo.class = estado.cor;
       var elementoTexto = processo.querySelector("td:last-child");
+      elementoTexto.className = estado.cor;
       elementoTexto.innerText = estado.nome;
     },
 
