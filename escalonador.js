@@ -2,7 +2,7 @@
 
   "use strict";
 
-  var Escalonador, Estado, Processo, Simulador;
+  var Escalonador, Estado, Processo, Simulador, btiniciar;
 
   Estado = {
     NOVO: 0,
@@ -43,10 +43,10 @@
 
       var valorMinimo = arguments[0];
 
-      for(var i = 1, l = arguments.length; i < l; i++) {
-        //Validando somente números
-        var regex = /[0-9]*/g;
+      //Validando somente números
+      var regex = /[0-9]*/g;
 
+      for(var i = 1, l = arguments.length; i < l; i++) {
         if(arguments[i] === "" || arguments[i].match(regex)[0] !== arguments[i]) {
           if(valorMinimo && window.parseInt(arguments[i], 10) >= valorMinimo) {
             window.alert("Valor não pode ser zero");
@@ -60,12 +60,12 @@
     },
 
     adicionaProcesso: function(pid, codEstado) {
-      var linha;
+      var linha, estado;
       if(this.quantidadeProcessos <= 0) {
         linha = "<tr><td>PID</td><td>ESTADO</td></tr>";
         this.tabela.innerHTML = linha;
       }
-      var estado = this.getObjetoEstado(codEstado);
+      estado = this.getObjetoEstado(codEstado);
       linha = "<tr id='p"+ pid +"'>";
       linha += "<td>" + pid + "</td>";
       linha += "<td class='"+ estado.cor +"'>";
@@ -77,24 +77,25 @@
     },
 
     alteraProcesso: function(pid, codEstado) {
-      var processo = document.querySelector("#p" + pid);
-      console.log("Cod ESTADO: " + codEstado);
-      var estado = this.getObjetoEstado(codEstado);
-      var elementoTexto = processo.querySelector("td:last-child");
+      var processo, estado, elementoTexto;
+      processo = document.querySelector("#p" + pid);
+      estado = this.getObjetoEstado(codEstado);
+      elementoTexto = processo.querySelector("td:last-child");
       elementoTexto.className = estado.cor;
       elementoTexto.innerText = estado.nome;
     },
 
     removeProcesso: function(pid) {
+      var processo, linha;
 
-      var processo = document.querySelector("#p" + pid);
+      processo = document.querySelector("#p" + pid);
 
       processo.parentNode.removeChild(processo);
 
       this.quantidadeProcessos--;
 
       if(this.quantidadeProcessos <= 0) {
-        var linha = "<tr><td>Nenhum processo</td></tr>";
+        linha = "<tr><td>Nenhum processo</td></tr>";
         this.tabela.innerHTML = linha;
       }
     },
@@ -225,9 +226,7 @@
 
     processos: {},
 
-    ultimoIndice: 0,
-
-    debug: true,
+    debug: false,
 
     verbose: function() {
 
@@ -304,7 +303,7 @@
 
     trocaProcesso: function() {
 
-      var pids, processo;
+      var pids, processo, mudou;
 
       //TODO: Rever este método.
       pids = Object.keys(this.processos);
@@ -318,7 +317,7 @@
         }
       }
       else {
-        var mudou = 0;
+        mudou = 0;
         for(var i = 0, l = pids.length; i < l; i++) {
           if(pids[i] === this.proxPid) {
             if(pids[i+1] !== undefined) {
@@ -367,13 +366,15 @@
     },
 
     verificaQuantum: function() {
+      var processoTemp;
+
       if (this.quantum !== null) {
         this.tempoDecorrido += 1000;
         if (this.processoEmExecucao) {
           this.processoEmExecucao.tempoDeVida -= 1000;
 
           if (this.processoEmExecucao.tempoDeVida <= 0) {
-            var processoTemp = this.processoEmExecucao;
+            processoTemp = this.processoEmExecucao;
             this.trocaProcesso();
             processoTemp.encerrar();
             if (this.tempoDecorrido >= this.quantum) {
@@ -398,7 +399,6 @@
         window.console.log("Novo processo adicionado");
         window.console.log(this.processosNoMinuto);
       }
-      this.ultimoIndice++;
     },
 
     getProcesso: function(pid) {
@@ -409,11 +409,7 @@
     },
 
     finalizarProcesso: function(pid) {
-
       delete this.processos[pid];
-
-      this.ultimoIndice--;
-
     },
 
   };
@@ -421,7 +417,7 @@
   window.Escalonador = Escalonador;
 
   //Inicia tudo quando apertado o Iniciar Simulação
-  var btiniciar = document.querySelector("#btiniciar");
+  btiniciar = document.querySelector("#btiniciar");
   btiniciar.addEventListener("click", function(e){
     e.preventDefault();
     Simulador.iniciar();
