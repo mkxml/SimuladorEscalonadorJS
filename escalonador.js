@@ -257,6 +257,20 @@
       this.tempoDeVida = opcoes.tempoDeVida;
       this.chanceDeEspera = opcoes.chanceDeEspera;
 
+      this.processos = {};
+      this.proxPid = null;
+      this.processoEmExecucao = null;
+      this.tempoDecorrido = 0;
+
+      if(this.timerMinuto)
+        window.clearInterval(this.timerMinuto);
+
+      if(this.timerSegundo)
+        window.clearTimeout(this.timerSegundo);
+
+      if(this.timerExecucao)
+        window.clearInterval(this.timerExecucao);
+
       this.processosNoMinuto = 0;
       this.geraLoteDeProcessos();
 
