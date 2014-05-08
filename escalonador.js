@@ -35,7 +35,7 @@
           tempoDeVida: tempoDeVida
         });
       }
-      
+
     },
 
     validaInput: function() {
@@ -149,9 +149,6 @@
       }
       Simulador.adicionaProcesso(pid, this.estado);
 
-      //Tempo de vida do processo começa a transcorrer
-      window.setTimeout(this.encerrar.bind(this), this.tempoDeVida);
-
       //Processo pronto
       this.pronto();
     }
@@ -186,9 +183,8 @@
       Simulador.removeProcesso(this.pid);
     };
 
-
     return Processo;
-    
+
   })();
 
   Escalonador = {
@@ -198,6 +194,9 @@
 
     //Quantidade de tempo que o escalonador leva para trocar o processo
     quantum: null,
+
+    // Tempo para verificar se o quantum foi atingido
+    tempoDecorrido: 0,
 
     //Tempo de vida default do processo: 30 segundos
     tempoDeVida: 30000,
@@ -227,7 +226,7 @@
 
     ultimoIndice: 0,
 
-    debug: false,
+    debug: true,
 
     verbose: function() {
 
@@ -267,7 +266,7 @@
         this.geraLoteDeProcessos();
       }.bind(this), 61000);
 
-      this.timerExecucao = window.setInterval(this.trocaProcesso.bind(this), this.quantum);
+      this.timerExecucao = window.setInterval(this.verificaQuantum.bind(this), 1000);
 
     },
 
@@ -313,7 +312,9 @@
               break;
             }
             else {
-              return;
+              this.proxPid = pids[0];
+              mudou = 1;
+              break;
             }
           }
         }
@@ -324,7 +325,6 @@
 
       //Parando execução do processo atual se existente e fora da espera
       if(this.processoEmExecucao !== null) {
-
         //Pula processos em espera
         if(this.processoEmExecucao.getEstado() == Estado.EM_ESPERA) {
           this.indexEmExecucao++;
@@ -337,13 +337,42 @@
 
       processo = this.getProcesso(this.proxPid);
 
-      //Executa o próximo processo
-      if(processo.getEstado() == Estado.PRONTO) {
-        processo.executar();
+      //Executa o próximo processo se ele existir
+      if (processo) {
+        if(processo.getEstado() == Estado.PRONTO) {
+          processo.executar();
+        }
+
+        this.processoEmExecucao = processo;
+      }
+      else {
+        this.processoEmExecucao = null;
       }
 
-      this.processoEmExecucao = processo;
+    },
 
+    verificaQuantum: function() {
+      if (this.quantum !== null) {
+        this.tempoDecorrido += 1000;
+        if (this.processoEmExecucao) {
+          this.processoEmExecucao.tempoDeVida -= 1000;
+
+          if (this.processoEmExecucao.tempoDeVida <= 0) {
+            var processoTemp = this.processoEmExecucao;
+            this.trocaProcesso();
+            processoTemp.encerrar();
+            if (this.tempoDecorrido >= this.quantum) {
+              this.tempoDecorrido = 0;
+            }
+            return;
+          }
+        }
+
+        if (this.tempoDecorrido >= this.quantum) {
+          this.trocaProcesso();
+          this.tempoDecorrido = 0;
+        }
+      }
     },
 
     criaNovoProcesso: function() {
@@ -369,7 +398,7 @@
       delete this.processos[pid];
 
       this.ultimoIndice--;
-      
+
     },
 
   };
