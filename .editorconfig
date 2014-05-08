@@ -1,0 +1,10 @@
+#Editor Config para o projeto
+
+root = true
+
+#Padroes do projeto
+[*]:
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
