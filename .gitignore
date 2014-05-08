@@ -1,0 +1,5 @@
+#Ignorando arquivos do Mac
+.DS_Store
+
+#Ignorando arquivos do Windows
+Thumbs.db
