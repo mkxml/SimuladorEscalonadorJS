@@ -99,15 +99,17 @@
         processo.parentNode.removeChild(processo);
 
         this.quantidadeProcessos--;
-
-        if(this.quantidadeProcessos <= 0) {
-          var linha = "<tr><td>Nenhum processo</td></tr>";
-          this.tabela.innerHTML = linha;
-        }
       }
       catch(e) {
         if(this.debug)
           console.error("Processo já removido: " + e.message);
+      }
+      finally {
+        var linha;
+        if(this.quantidadeProcessos <= 0) {
+          linha = "<tr><td>Nenhum processo</td></tr>";
+          this.tabela.innerHTML = linha;
+        }
       }
     },
 
@@ -327,37 +329,32 @@
 
     trocaProcesso: function() {
 
-      var pids, processo;
+      var pids, processo, proxPid;
 
-      //TODO: Rever este método.
       pids = Object.keys(this.processos);
 
       if(this.proxPid === null) {
         if(pids[0] !== undefined) {
           this.proxPid = pids[0];
+          this.ultimoIndice = 0;
         }
         else {
           return;
         }
       }
       else {
-        var mudou = 0;
-        for(var i = 0, l = pids.length; i < l; i++) {
-          if(pids[i] === this.proxPid) {
-            if(pids[i+1] !== undefined) {
-              this.proxPid = pids[i+1];
-              mudou = 1;
-              break;
-            }
-            else {
-              this.proxPid = pids[0];
-              mudou = 1;
-              break;
-            }
-          }
+        proxPid = pids[this.ultimoIndice];
+        if(proxPid !== undefined) {
+          this.proxPid = proxPid;
         }
-        if(mudou === 0) {
-          this.proxPid = null;
+        else {
+          if(pids[0] !== undefined) {
+            this.proxPid = pids[0];
+            this.ultimoIndice = 0;
+          }
+          else {
+            this.proxPid  = null;
+          }
         }
       }
 
@@ -365,7 +362,7 @@
       if(this.processoEmExecucao !== null) {
         //Pula processos em espera
         if(this.processoEmExecucao.getEstado() === Estado.EM_ESPERA) {
-          this.indexEmExecucao++;
+          this.ultimoIndice++;
           return this.trocaProcesso();
         }
         else {
@@ -382,9 +379,11 @@
         }
 
         this.processoEmExecucao = processo;
+        this.ultimoIndice++;
       }
       else {
         this.processoEmExecucao = null;
+        this.proxPid = null;
       }
 
     },
@@ -397,7 +396,6 @@
         window.console.log("Novo processo adicionado");
         window.console.log(this.processosNoMinuto);
       }
-      this.ultimoIndice++;
     },
 
     getProcesso: function(pid) {
@@ -411,7 +409,9 @@
 
       delete this.processos[pid];
 
-      this.ultimoIndice--;
+      if(this.ultimoIndice > 0) {
+        this.ultimoIndice--;
+      }
 
     },
 
