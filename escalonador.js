@@ -24,6 +24,7 @@
       var quantidadePorMinuto = document.querySelector("#quantidadePorMinuto").value.trim();
       var tempoDeVida = document.querySelector("#tempoDeVida").value.trim();
       var chanceDeEspera = document.querySelector("#chanceDeEspera").value.trim();
+      var mostraEncerramento = document.querySelector("#mostraEncerrado").checked;
       var valido = true;
 
       valido = this.validaInput(1, quantum, quantidadePorMinuto, tempoDeVida) &&
@@ -35,7 +36,8 @@
           quantum: quantum,
           quantidadePorMinuto: quantidadePorMinuto,
           chanceDeEspera: chanceDeEspera,
-          tempoDeVida: tempoDeVida
+          tempoDeVida: tempoDeVida,
+          mostraEncerramento: mostraEncerramento
         });
       }
 
@@ -117,27 +119,27 @@
       switch(estado) {
         case Estado.NOVO:
           return {
-            nome: "NOVO",
+            nome: "Novo",
             cor: "preto"
           };
         case Estado.PRONTO:
           return {
-            nome: "PRONTO",
+            nome: "Pronto",
             cor: "azul"
           };
         case Estado.EM_EXECUCAO:
           return {
-            nome: "EM EXECUÇÃO",
+            nome: "Executando",
             cor: "verde"
           };
         case Estado.EM_ESPERA:
           return {
-            nome: "EM ESPERA",
+            nome: "Esperando",
             cor: "amarelo"
           };
         case Estado.ENCERRADO:
           return {
-            nome: "ENCERRADO",
+            nome: "Encerrado",
             cor: "vermelho"
           };
       }
@@ -146,25 +148,19 @@
 
   Processo = (function() {
 
-    Processo.prototype.debug = false;
-
     Processo.prototype.pid = null;
 
     Processo.prototype.estado = null;
 
     Processo.prototype.tempoDeVida = null;
 
-    function Processo(pid, tempoDeVida, debug) {
+    function Processo(pid, tempoDeVida, mostraEncerramento) {
       this.pid = pid;
       this.estado = Estado.NOVO;
       this.tempoDeVida = tempoDeVida;
-      if(debug) {
-        this.debug = true;
-        window.console.log("Processo criado: " + pid);
-      }
       Simulador.adicionaProcesso(pid, this.estado);
 
-      window.setTimeout(this.encerrar.bind(this), this.tempoDeVida);
+      window.setTimeout(this.encerrar.bind(this, mostraEncerramento), this.tempoDeVida);
 
       //Processo pronto
       this.pronto();
@@ -195,11 +191,11 @@
       }
     };
 
-    Processo.prototype.encerrar = function() {
+    Processo.prototype.encerrar = function(mostraEncerramento) {
       if(this.estado !== Estado.ENCERRADO) {
         this.estado = Estado.ENCERRADO;
         Simulador.alteraProcesso(this.pid, this.estado);
-        if(!this.debug)
+        if(!mostraEncerramento)
           window.setTimeout(this.destruir.bind(this), 3000);
         Escalonador.finalizarProcesso(this.pid);
       }
@@ -232,6 +228,9 @@
 
     //Chance do processo entrar em espera
     chanceDeEspera: null,
+
+    //Flag que determina se processos encerrados saem da visualização
+    mostraEncerramento: false,
 
     //Clock do minuto do escalonador
     timerMinuto: null,
@@ -282,6 +281,7 @@
       this.quantidadePorMinuto = opcoes.quantidadePorMinuto;
       this.tempoDeVida = opcoes.tempoDeVida;
       this.chanceDeEspera = opcoes.chanceDeEspera;
+      this.mostraEncerramento = opcoes.mostraEncerramento;
 
       this.processos = {};
       this.proxPid = null;
@@ -390,7 +390,7 @@
 
     criaNovoProcesso: function() {
       var pid = this.geraPID();
-      var novoProcesso = new Processo(pid, this.tempoDeVida, this.debug);
+      var novoProcesso = new Processo(pid, this.tempoDeVida, this.mostraEncerramento);
       this.processos[pid] = novoProcesso;
       if(this.debug) {
         window.console.log("Novo processo adicionado");
