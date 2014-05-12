@@ -17,6 +17,8 @@
     quantidadeProcessos: 0,
     tabela: document.querySelector("#tabela-processos"),
 
+    debug: false,
+
     iniciar: function() {
       var quantum = document.querySelector("#quantum").value.trim();
       var quantidadePorMinuto = document.querySelector("#quantidadePorMinuto").value.trim();
@@ -77,26 +79,37 @@
     },
 
     alteraProcesso: function(pid, codEstado) {
-      var processo, estado, elementoTexto;
-      processo = document.querySelector("#p" + pid);
-      estado = this.getObjetoEstado(codEstado);
-      elementoTexto = processo.querySelector("td:last-child");
-      elementoTexto.className = estado.cor;
-      elementoTexto.innerText = estado.nome;
+      try {
+        var processo = document.querySelector("#p" + pid);
+        var estado = this.getObjetoEstado(codEstado);
+        var elementoTexto = processo.querySelector("td:last-child");
+        elementoTexto.className = estado.cor;
+        elementoTexto.innerText = estado.nome;
+      }
+      catch(e) {
+        if(this.debug)
+          console.error("Processo já removido: " + e.message);
+      }
     },
 
     removeProcesso: function(pid) {
-      var processo, linha;
+      try {
+        var processo = document.querySelector("#p" + pid);
 
-      processo = document.querySelector("#p" + pid);
+        processo.parentNode.removeChild(processo);
 
-      processo.parentNode.removeChild(processo);
-
-      this.quantidadeProcessos--;
-
-      if(this.quantidadeProcessos <= 0) {
-        linha = "<tr><td>Nenhum processo</td></tr>";
-        this.tabela.innerHTML = linha;
+        this.quantidadeProcessos--;
+      }
+      catch(e) {
+        if(this.debug)
+          console.error("Processo já removido: " + e.message);
+      }
+      finally {
+        var linha;
+        if(this.quantidadeProcessos <= 0) {
+          linha = "<tr><td>Nenhum processo</td></tr>";
+          this.tabela.innerHTML = linha;
+        }
       }
     },
 
@@ -151,6 +164,8 @@
       }
       Simulador.adicionaProcesso(pid, this.estado);
 
+      window.setTimeout(this.encerrar.bind(this), this.tempoDeVida);
+
       //Processo pronto
       this.pronto();
     }
@@ -160,25 +175,34 @@
     };
 
     Processo.prototype.pronto = function() {
-      this.estado = Estado.PRONTO;
-      Simulador.alteraProcesso(this.pid, this.estado);
+      if(this.estado !== Estado.ENCERRADO) {
+        this.estado = Estado.PRONTO;
+        Simulador.alteraProcesso(this.pid, this.estado);
+      }
     };
 
     Processo.prototype.esperar = function() {
-      this.estado = Estado.EM_ESPERA;
-      Simulador.alteraProcesso(this.pid, this.estado);
+      if(this.estado === Estado.EM_EXECUCAO) {
+        this.estado = Estado.EM_ESPERA;
+        Simulador.alteraProcesso(this.pid, this.estado);
+      }
     };
 
     Processo.prototype.executar = function() {
-      this.estado = Estado.EM_EXECUCAO;
-      Simulador.alteraProcesso(this.pid, this.estado);
+      if(this.estado === Estado.PRONTO) {
+        this.estado = Estado.EM_EXECUCAO;
+        Simulador.alteraProcesso(this.pid, this.estado);
+      }
     };
 
     Processo.prototype.encerrar = function() {
-      this.estado = Estado.ENCERRADO;
-      Simulador.alteraProcesso(this.pid, this.estado);
-      window.setTimeout(this.destruir.bind(this), 3000);
-      Escalonador.finalizarProcesso(this.pid);
+      if(this.estado !== Estado.ENCERRADO) {
+        this.estado = Estado.ENCERRADO;
+        Simulador.alteraProcesso(this.pid, this.estado);
+        if(!this.debug)
+          window.setTimeout(this.destruir.bind(this), 3000);
+        Escalonador.finalizarProcesso(this.pid);
+      }
     };
 
     Processo.prototype.destruir = function() {
@@ -225,6 +249,8 @@
     processosNoMinuto: 0,
 
     processos: {},
+
+    ultimoIndice: 0,
 
     debug: false,
 
@@ -280,7 +306,7 @@
         this.geraLoteDeProcessos();
       }.bind(this), 61000);
 
-      this.timerExecucao = window.setInterval(this.verificaQuantum.bind(this), 1000);
+      this.timerExecucao = window.setInterval(this.trocaProcesso.bind(this), this.quantum);
 
     },
 
@@ -303,45 +329,40 @@
 
     trocaProcesso: function() {
 
-      var pids, processo, mudou;
+      var pids, processo, proxPid;
 
-      //TODO: Rever este método.
       pids = Object.keys(this.processos);
 
       if(this.proxPid === null) {
         if(pids[0] !== undefined) {
           this.proxPid = pids[0];
+          this.ultimoIndice = 0;
         }
         else {
           return;
         }
       }
       else {
-        mudou = 0;
-        for(var i = 0, l = pids.length; i < l; i++) {
-          if(pids[i] === this.proxPid) {
-            if(pids[i+1] !== undefined) {
-              this.proxPid = pids[i+1];
-              mudou = 1;
-              break;
-            }
-            else {
-              this.proxPid = pids[0];
-              mudou = 1;
-              break;
-            }
-          }
+        proxPid = pids[this.ultimoIndice];
+        if(proxPid !== undefined) {
+          this.proxPid = proxPid;
         }
-        if(mudou === 0) {
-          this.proxPid = null;
+        else {
+          if(pids[0] !== undefined) {
+            this.proxPid = pids[0];
+            this.ultimoIndice = 0;
+          }
+          else {
+            this.proxPid  = null;
+          }
         }
       }
 
       //Parando execução do processo atual se existente e fora da espera
       if(this.processoEmExecucao !== null) {
         //Pula processos em espera
-        if(this.processoEmExecucao.getEstado() == Estado.EM_ESPERA) {
-          this.indexEmExecucao++;
+        if(this.processoEmExecucao.getEstado() === Estado.EM_ESPERA) {
+          this.ultimoIndice++;
           return this.trocaProcesso();
         }
         else {
@@ -353,42 +374,18 @@
 
       //Executa o próximo processo se ele existir
       if (processo) {
-        if(processo.getEstado() == Estado.PRONTO) {
+        if(processo.getEstado() === Estado.PRONTO) {
           processo.executar();
         }
 
         this.processoEmExecucao = processo;
+        this.ultimoIndice++;
       }
       else {
         this.processoEmExecucao = null;
+        this.proxPid = null;
       }
 
-    },
-
-    verificaQuantum: function() {
-      var processoTemp;
-
-      if (this.quantum !== null) {
-        this.tempoDecorrido += 1000;
-        if (this.processoEmExecucao) {
-          this.processoEmExecucao.tempoDeVida -= 1000;
-
-          if (this.processoEmExecucao.tempoDeVida <= 0) {
-            processoTemp = this.processoEmExecucao;
-            this.trocaProcesso();
-            processoTemp.encerrar();
-            if (this.tempoDecorrido >= this.quantum) {
-              this.tempoDecorrido = 0;
-            }
-            return;
-          }
-        }
-
-        if (this.tempoDecorrido >= this.quantum) {
-          this.trocaProcesso();
-          this.tempoDecorrido = 0;
-        }
-      }
     },
 
     criaNovoProcesso: function() {
@@ -410,6 +407,11 @@
 
     finalizarProcesso: function(pid) {
       delete this.processos[pid];
+
+      if(this.ultimoIndice > 0) {
+        this.ultimoIndice--;
+      }
+
     },
 
   };
