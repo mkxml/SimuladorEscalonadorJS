@@ -91,7 +91,7 @@
       }
       catch(e) {
         if(this.debug)
-          console.error("Processo já removido: " + e.message);
+          window.console.error("Processo já removido: " + e.message);
       }
     },
 
@@ -102,12 +102,14 @@
         this.quantidadeProcessos--;
       }
       catch(e) {
+        this.quantidadeProcessos--;
         if(this.debug)
-          console.error("Processo já removido: " + e.message);
+          window.console.error("Processo já removido: " + e.message);
       }
       finally {
         var linha;
         if(this.quantidadeProcessos <= 0) {
+          this.quantidadeProcessos = 0;
           linha = "<tr><td>Nenhum processo</td></tr>";
           this.tabela.innerHTML = linha;
         }
@@ -153,10 +155,13 @@
 
     Processo.prototype.tempoDeVida = null;
 
-    function Processo(pid, tempoDeVida, mostraEncerramento) {
+    Processo.prototype.chanceDeEspera = null;
+
+    function Processo(pid, tempoDeVida, mostraEncerramento, chanceDeEspera) {
       this.pid = pid;
       this.estado = Estado.NOVO;
       this.tempoDeVida = tempoDeVida;
+      this.chanceDeEspera = chanceDeEspera;
       Simulador.adicionaProcesso(pid, this.estado);
 
       window.setTimeout(this.encerrar.bind(this, mostraEncerramento), this.tempoDeVida);
@@ -176,6 +181,18 @@
       }
     };
 
+    Processo.prototype.entraEmEspera = function() {
+      var porcentagemDeChance = this.chanceDeEspera;
+      var random = ((Math.random()*100)+1);
+      if(random <= porcentagemDeChance) {
+        window.setTimeout(this.pronto.bind(this), 1000);
+        Escalonador.contadorEspera++;
+        return true;
+      }
+      Escalonador.contadorExecutou++;
+      return false;
+    };
+
     Processo.prototype.esperar = function() {
       if(this.estado === Estado.EM_EXECUCAO) {
         this.estado = Estado.EM_ESPERA;
@@ -184,8 +201,12 @@
     };
 
     Processo.prototype.executar = function() {
-      if(this.estado === Estado.PRONTO) {
+      if(this.estado === Estado.PRONTO && !this.entraEmEspera()) {
         this.estado = Estado.EM_EXECUCAO;
+        Simulador.alteraProcesso(this.pid, this.estado);
+      }
+      else {
+        this.estado = Estado.EM_ESPERA;
         Simulador.alteraProcesso(this.pid, this.estado);
       }
     };
@@ -249,6 +270,11 @@
 
     ultimoIndice: 0,
 
+    //Debug espera
+    contadorEspera: 0,
+
+    contadorExecutou: 0,
+
     debug: false,
 
     verbose: function() {
@@ -283,6 +309,8 @@
       this.proxPid = null;
       this.processoEmExecucao = null;
       this.tempoDecorrido = 0;
+      this.contadorExecutou = 0;
+      this.contadorEspera = 0;
 
       if(this.timerMinuto)
         window.clearInterval(this.timerMinuto);
@@ -308,8 +336,13 @@
     geraLoteDeProcessos: function() {
       var qtde = Math.ceil(this.quantidadePorMinuto/60);
       if(this.processosNoMinuto >= this.quantidadePorMinuto) {
-        if(this.debug)
+        if(this.debug) {
           window.console.log("O lote de processos do minuto foi criado");
+          window.console.log("NUMERO DE ESPERA: " + this.contadorEspera);
+          window.console.log("NUMERO EXECUTADO: " + this.contadorExecutou);
+          this.contadorEspera = 0;
+          this.contadorExecutou = 0;
+        }
       }
       else {
         for(var i = 0; i < qtde; i++) {
@@ -353,24 +386,26 @@
       //Parando execução do processo atual se existente e fora da espera
       if(this.processoEmExecucao !== null) {
         //Pula processos em espera
-        if(this.processoEmExecucao.getEstado() === Estado.EM_ESPERA) {
-          this.ultimoIndice++;
-          return this.trocaProcesso();
-        }
-        else {
+        if(this.processoEmExecucao.getEstado() !== Estado.EM_ESPERA)
           this.processoEmExecucao.pronto();
-        }
       }
 
       processo = this.getProcesso(this.proxPid);
 
       //Executa o próximo processo se ele existir
       if (processo) {
+        //Pula processos em espera
+        if(processo.getEstado() === Estado.EM_ESPERA) {
+          this.ultimoIndice++;
+          return;
+        }
+
         if(processo.getEstado() === Estado.PRONTO) {
           processo.executar();
         }
 
         this.processoEmExecucao = processo;
+
         this.ultimoIndice++;
       }
       else {
@@ -382,7 +417,7 @@
 
     criaNovoProcesso: function() {
       var pid = this.geraPID();
-      var novoProcesso = new Processo(pid, this.tempoDeVida, this.mostraEncerramento);
+      var novoProcesso = new Processo(pid, this.tempoDeVida, this.mostraEncerramento, this.chanceDeEspera);
       this.processos[pid] = novoProcesso;
       if(this.debug) {
         window.console.log("Novo processo adicionado");
