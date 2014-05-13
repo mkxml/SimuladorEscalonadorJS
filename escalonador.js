@@ -202,13 +202,10 @@
 
     Processo.prototype.executar = function() {
       if(this.estado === Estado.PRONTO) {
-        if(!this.entraEmEspera) {
-          this.estado = Estado.EM_EXECUCAO;
-          Simulador.alteraProcesso(this.pid, this.estado);
-        }
-        else {
+        this.estado = Estado.EM_EXECUCAO;
+        Simulador.alteraProcesso(this.pid, this.estado);
+        if(this.entraEmEspera())
           this.esperar();
-        }
       }
     };
 
