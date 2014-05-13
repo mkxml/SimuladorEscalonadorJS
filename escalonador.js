@@ -15,6 +15,7 @@
   Simulador = {
 
     quantidadeProcessos: 0,
+
     tabela: document.querySelector("#tabela-processos"),
 
     debug: false,
@@ -40,11 +41,9 @@
           mostraEncerramento: mostraEncerramento
         });
       }
-
     },
 
     validaInput: function() {
-
       var valorMinimo = arguments[0];
 
       //Validando somente números
@@ -65,10 +64,12 @@
 
     adicionaProcesso: function(pid, codEstado) {
       var linha, estado;
+
       if(this.quantidadeProcessos <= 0) {
         linha = "<tr><td>PID</td><td>ESTADO</td></tr>";
         this.tabela.innerHTML = linha;
       }
+
       estado = this.getObjetoEstado(codEstado);
       linha = "<tr id='p"+ pid +"'>";
       linha += "<td>" + pid + "</td>";
@@ -97,9 +98,7 @@
     removeProcesso: function(pid) {
       try {
         var processo = document.querySelector("#p" + pid);
-
         processo.parentNode.removeChild(processo);
-
         this.quantidadeProcessos--;
       }
       catch(e) {
@@ -206,7 +205,6 @@
     };
 
     return Processo;
-
   })();
 
   Escalonador = {
@@ -254,10 +252,8 @@
     debug: false,
 
     verbose: function() {
-
       this.debug = !this.debug;
       return this.debug;
-
     },
 
     //Gera código randômico hexadecimal de 4 dígitos
@@ -276,13 +272,13 @@
     },
 
     iniciar: function(opcoes) {
-
       this.quantum = opcoes.quantum;
       this.quantidadePorMinuto = opcoes.quantidadePorMinuto;
       this.tempoDeVida = opcoes.tempoDeVida;
       this.chanceDeEspera = opcoes.chanceDeEspera;
       this.mostraEncerramento = opcoes.mostraEncerramento;
 
+      //Zerando escalonador
       this.processos = {};
       this.proxPid = null;
       this.processoEmExecucao = null;
@@ -307,13 +303,10 @@
       }.bind(this), 61000);
 
       this.timerExecucao = window.setInterval(this.trocaProcesso.bind(this), this.quantum);
-
     },
 
     geraLoteDeProcessos: function() {
-
       var qtde = Math.ceil(this.quantidadePorMinuto/60);
-
       if(this.processosNoMinuto >= this.quantidadePorMinuto) {
         if(this.debug)
           window.console.log("O lote de processos do minuto foi criado");
@@ -328,7 +321,6 @@
     },
 
     trocaProcesso: function() {
-
       var pids, processo, proxPid;
 
       pids = Object.keys(this.processos);
@@ -407,13 +399,10 @@
 
     finalizarProcesso: function(pid) {
       delete this.processos[pid];
-
       if(this.ultimoIndice > 0) {
         this.ultimoIndice--;
       }
-
     },
-
   };
 
   window.Escalonador = Escalonador;
@@ -425,5 +414,4 @@
     Simulador.iniciar();
     return false;
   }.bind(this), false);
-
 })(window, document);
