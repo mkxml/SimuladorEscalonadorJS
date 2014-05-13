@@ -2,7 +2,7 @@
 
   "use strict";
 
-  var Escalonador, Estado, Processo, Simulador, btiniciar;
+  var Escalonador, Estado, Processo, Simulador, btiniciar, debug;
 
   Estado = {
     NOVO: 0,
@@ -275,6 +275,7 @@
 
     debug: false,
 
+    //Ativa o modo debug
     verbose: function() {
       this.debug = !this.debug;
       return this.debug;
@@ -447,4 +448,11 @@
     Simulador.iniciar();
     return false;
   }.bind(this), false);
+
+  //Liga o debug se a caixa estiver marcada
+  debug = document.querySelector("#debug");
+  debug.addEventListener("change", function(e){
+    e.preventDefault();
+    Escalonador.verbose();
+  }, false);
 })(window, document);
