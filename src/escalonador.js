@@ -157,14 +157,14 @@
 
     Processo.prototype.chanceDeEspera = null;
 
-    function Processo(pid, tempoDeVida, mostraEncerramento, chanceDeEspera) {
-      this.pid = pid;
+    function Processo(opcoes) {
+      this.pid = opcoes.pid;
       this.estado = Estado.NOVO;
-      this.tempoDeVida = tempoDeVida;
-      this.chanceDeEspera = chanceDeEspera;
-      Simulador.adicionaProcesso(pid, this.estado);
+      this.tempoDeVida = opcoes.tempoDeVida;
+      this.chanceDeEspera = opcoes.chanceDeEspera;
+      Simulador.adicionaProcesso(this.pid, this.estado);
 
-      window.setTimeout(this.encerrar.bind(this, mostraEncerramento), this.tempoDeVida);
+      window.setTimeout(this.encerrar.bind(this, opcoes.mostraEncerramento), this.tempoDeVida);
 
       //Processo pronto
       this.pronto();
@@ -416,7 +416,12 @@
 
     criaNovoProcesso: function() {
       var pid = this.geraPID();
-      var novoProcesso = new Processo(pid, this.tempoDeVida, this.mostraEncerramento, this.chanceDeEspera);
+      var novoProcesso = new Processo({
+        pid: pid,
+        tempoDeVida: this.tempoDeVida,
+        mostraEncerramento: this.mostraEncerramento,
+        chanceDeEspera: this.chanceDeEspera
+      });
       this.processos[pid] = novoProcesso;
       if(this.debug) {
         window.console.log("Novo processo adicionado");
