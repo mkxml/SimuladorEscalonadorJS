@@ -358,7 +358,7 @@
       pids = Object.keys(this.processos);
 
       if(this.proxPid === null) {
-        if(pids[0] !== undefined) {
+        if(pids[0]) {
           this.proxPid = pids[0];
           this.ultimoIndice = 0;
         }
@@ -368,11 +368,11 @@
       }
       else {
         proxPid = pids[this.ultimoIndice];
-        if(proxPid !== undefined) {
+        if(proxPid) {
           this.proxPid = proxPid;
         }
         else {
-          if(pids[0] !== undefined) {
+          if(pids[0]) {
             this.proxPid = pids[0];
             this.ultimoIndice = 0;
           }
