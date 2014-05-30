@@ -260,7 +260,7 @@
 
     proxPid: null,
 
-    processoEmExecucao: null,
+    processoEmFoco: null,
 
     processosNoMinuto: 0,
 
@@ -306,7 +306,7 @@
       //Zerando escalonador
       this.processos = {};
       this.proxPid = null;
-      this.processoEmExecucao = null;
+      this.processoEmFoco = null;
       this.tempoDecorrido = 0;
       this.contadorExecutou = 0;
       this.contadorEspera = 0;
@@ -383,10 +383,10 @@
       }
 
       //Parando execução do processo atual se existente e fora da espera
-      if(this.processoEmExecucao !== null) {
+      if(this.processoEmFoco !== null) {
         //Pula processos em espera
-        if(this.processoEmExecucao.getEstado() !== Estado.EM_ESPERA)
-          this.processoEmExecucao.pronto();
+        if(this.processoEmFoco.getEstado() !== Estado.EM_ESPERA)
+          this.processoEmFoco.pronto();
       }
 
       processo = this.getProcesso(this.proxPid);
@@ -403,12 +403,12 @@
           processo.executar();
         }
 
-        this.processoEmExecucao = processo;
+        this.processoEmFoco = processo;
 
         this.ultimoIndice++;
       }
       else {
-        this.processoEmExecucao = null;
+        this.processoEmFoco = null;
         this.proxPid = null;
       }
 
