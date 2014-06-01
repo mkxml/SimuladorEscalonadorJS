@@ -6,11 +6,13 @@
     <link rel="stylesheet" href="css/estilo.css">
   </head>
   <body>
+    <a href="https://github.com/mkautzmann/SimuladorEscalonadorJS"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/567c3a48d796e2fc06ea80409cc9dd82bf714434/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_darkblue_121621.png"></a>
+    <header>
+      <h1>Simulador do Escalonador de Processos usando Round-Robin</h1>
+    </header>
     <div id="main">
-      <header>
-        <h1>Simulador do Escalonador de Processos</h1>
-      </header>
-      <form id="parametros-simulacao" action="">
+      <form id="controles" action="">
+        <h1>Controles</h1>
         <fieldset>
           <label for="quantum">Quantum (ms):</label>
           <input id="quantum" type="number" required>
@@ -41,9 +43,37 @@
         </fieldset>
         <input type="submit" id="btiniciar" value="Iniciar Simulação">
       </form>
+      <h1 class="com-simulacao">Rodando simulação...</h1>
+      <h1>Estatísticas</h1>
+      <table id="estatisticas">
+        <tr>
+          <td>Throughput</td>
+          <td><span id="throughput">0</span> por minuto</td>
+        </tr>
+        <tr>
+          <td>Taxa de criação de processos:</td>
+          <td><span id="tx-criacao">0</span> por segundo</td>
+        </tr>
+        <tr>
+          <td>Número de processos já criados:</td>
+          <td><span id="n-criacao">0</span></td>
+        </tr>
+        <tr>
+          <td>Número de processos ativos:</td>
+          <td><span id="n-ativos">0</span></td>
+        </tr>
+        <tr>
+          <td>Porcentagem real de processos I/O Bound:</td>
+          <td><span id="io-bound">0</span>%</td>
+        </tr>
+      </table>
+      <h1>Tabela de processos</h1>
+      <h1 class="sem-simulacao">Nenhuma simulação rodando no momento.</h1>
       <table id="tabela-processos"></table>
     </div>
-    <footer>Projeto do Grupo 4 - Sistemas Operacionais I - Universidade Feevale</footer>
+    <footer>
+      <p>Projeto do Grupo 4 - Sistemas Operacionais I - Universidade Feevale</p>
+    </footer>
     <script src="src/escalonador.js"></script>
   </body>
 </html>

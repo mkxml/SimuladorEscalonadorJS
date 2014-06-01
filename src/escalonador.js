@@ -2,7 +2,7 @@
 
   "use strict";
 
-  var Escalonador, Estado, Processo, Simulador, btiniciar, debug;
+  var Escalonador, Estado, Processo, Simulador, btiniciar, semSimulacao, comSimulacao, debug;
 
   Estado = {
     NOVO: 0,
@@ -43,6 +43,8 @@
           mostraEncerramento: mostraEncerramento
         });
       }
+
+      return valido;
     },
 
     validaInput: function() {
@@ -68,13 +70,14 @@
       var linha, estado;
 
       if(this.quantidadeProcessos <= 0) {
-        linha = "<tr><td>PID</td><td>ESTADO</td></tr>";
+        linha = "<tr><td>PID</td><td class='turnaround'>Turnaround</td><td>Estado</td></tr>";
         this.tabela.innerHTML = linha;
       }
 
       estado = this.getObjetoEstado(codEstado);
       linha = "<tr id='p"+ pid +"'>";
       linha += "<td>" + pid + "</td>";
+      linha += "<td class='turnaround'>0ms</td>";
       linha += "<td class='"+ estado.cor +"'>";
       linha += estado.nome +"</td>";
       linha += "</tr>";
@@ -83,11 +86,13 @@
 
     },
 
-    alteraProcesso: function(pid, codEstado) {
+    alteraProcesso: function(pid, codEstado, turnaround) {
       try {
         var processo = document.querySelector("#p" + pid);
         var estado = this.getObjetoEstado(codEstado);
+        var turnaroundTexto = processo.querySelector(".turnaround");
         var elementoTexto = processo.querySelector("td:last-child");
+        turnaroundTexto.innerText = turnaround + "ms";
         elementoTexto.className = estado.cor;
         elementoTexto.innerText = estado.nome;
       }
@@ -165,9 +170,12 @@
 
     Processo.prototype.IOBound = false;
 
+    Processo.prototype.criacao = null;
+
     function Processo(opcoes) {
       this.pid = opcoes.pid;
       this.estado = Estado.NOVO;
+      this.criacao = Date.now();
       this.tempoDeVida = opcoes.tempoDeVida;
       this.chanceDeEspera = opcoes.chanceDeEspera;
       this.ciclosDeEspera = this.contadorEspera = opcoes.ciclosDeEspera;
@@ -188,10 +196,14 @@
       return this.estado;
     };
 
+    Processo.prototype.updateTurnaround = function () {
+      return Date.now() - this.criacao;
+    };
+
     Processo.prototype.pronto = function() {
       if(this.estado !== Estado.ENCERRADO) {
         this.estado = Estado.PRONTO;
-        Simulador.alteraProcesso(this.pid, this.estado);
+        Simulador.alteraProcesso(this.pid, this.estado, this.updateTurnaround());
       }
     };
 
@@ -209,7 +221,7 @@
     Processo.prototype.esperar = function() {
       if(this.estado === Estado.EM_EXECUCAO) {
         this.estado = Estado.EM_ESPERA;
-        Simulador.alteraProcesso(this.pid, this.estado);
+        Simulador.alteraProcesso(this.pid, this.estado, this.updateTurnaround());
       }
     };
 
@@ -221,7 +233,7 @@
       }
       if(this.estado === Estado.PRONTO) {
         this.estado = Estado.EM_EXECUCAO;
-        Simulador.alteraProcesso(this.pid, this.estado);
+        Simulador.alteraProcesso(this.pid, this.estado, this.updateTurnaround());
         if(this.IOBound)
           this.esperar();
       }
@@ -238,7 +250,7 @@
     Processo.prototype.encerrar = function(mostraEncerramento) {
       if(this.estado !== Estado.ENCERRADO) {
         this.estado = Estado.ENCERRADO;
-        Simulador.alteraProcesso(this.pid, this.estado);
+        Simulador.alteraProcesso(this.pid, this.estado, this.updateTurnaround());
         if(!mostraEncerramento)
           window.setTimeout(this.destruir.bind(this), 3000);
         Escalonador.finalizarProcesso(this.pid);
@@ -460,11 +472,19 @@
 
   window.Escalonador = Escalonador;
 
-  //Inicia tudo quando apertado o Iniciar Simulação
   btiniciar = document.querySelector("#btiniciar");
+  semSimulacao = document.querySelectorAll(".sem-simulacao");
+  comSimulacao = document.querySelectorAll(".com-simulacao");
+
+  //Inicia tudo quando apertado o Iniciar Simulação
   btiniciar.addEventListener("click", function(e){
     e.preventDefault();
-    Simulador.iniciar();
+    if(Simulador.iniciar()) {
+      for(var i = 0, l = comSimulacao.length; i < l; i++)
+        comSimulacao[i].className = "sem-simulacao";
+      for(var i = 0, l = semSimulacao.length; i < l; i++)
+        semSimulacao[i].className = "com-simulacao";
+    }
     return false;
   }.bind(this), false);
 
