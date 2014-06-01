@@ -55,8 +55,9 @@ a {
 input[type="number"] {
   width: 50%;
   border: 1px solid #CCC;
-  border-radius: 5px;
-  height: 30px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;  height: 30px;
   font-size: 20px;
   padding: 0 5px;
 }
@@ -76,6 +77,8 @@ input[type="submit"] {
   border: 0;
   font-size: 1.2em;
   cursor: pointer;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
   border-radius: 5px;
 }
 
