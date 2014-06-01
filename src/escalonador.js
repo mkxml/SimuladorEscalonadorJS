@@ -92,9 +92,9 @@
         var estado = this.getObjetoEstado(codEstado);
         var turnaroundTexto = processo.querySelector(".turnaround");
         var elementoTexto = processo.querySelector("td:last-child");
-        turnaroundTexto.innerText = turnaround + "ms";
+        turnaroundTexto.innerHTML = turnaround + "ms";
         elementoTexto.className = estado.cor;
-        elementoTexto.innerText = estado.nome;
+        elementoTexto.innerHTML = estado.nome;
       }
       catch(e) {
         if(this.debug)
@@ -151,7 +151,48 @@
             cor: "vermelho"
           };
       }
+    },
+
+    //Estatísticas do Simulador
+
+    zeraEstatisticas: function() {
+      var estatisticas = document.querySelectorAll(".estatistica");
+      for(var i = 0, l = estatisticas.length; i < l; i++) {
+        estatisticas[i].innerHTML = "0";
+      }
+    },
+
+    taxaCriacao: function(tx) {
+      var label = document.querySelector("#tx-criacao");
+      label.innerHTML = tx;
+    },
+
+    throughput: function(tx) {
+      var label = document.querySelector("#throughput");
+      label.innerHTML = tx;
+    },
+
+    processos: function(total, encerrados) {
+      var ativos = total - encerrados;
+      var lblTotal = document.querySelector("#n-criados");
+      var lblEncerrados = document.querySelector("#n-encerrados");
+      var lblAtivos = document.querySelector("#n-ativos");
+
+      lblTotal.innerHTML = total;
+      lblEncerrados.innerHTML = encerrados;
+      lblAtivos.innerHTML = ativos;
+    },
+
+    iobound: function(n) {
+      var iobound = document.querySelector("#io-bound");
+      iobound.innerHTML = n;
+    },
+
+    emEspera: function(n) {
+      var emEspera = document.querySelector("#n-espera");
+      emEspera.innerHTML = n;
     }
+
   };
 
   Processo = (function() {
@@ -173,8 +214,9 @@
     Processo.prototype.criacao = null;
 
     function Processo(opcoes) {
+      this.novo();
       this.pid = opcoes.pid;
-      this.estado = Estado.NOVO;
+      this.estado = this.getEstado();
       this.criacao = Date.now();
       this.tempoDeVida = opcoes.tempoDeVida;
       this.chanceDeEspera = opcoes.chanceDeEspera;
@@ -200,6 +242,11 @@
       return Date.now() - this.criacao;
     };
 
+    Processo.prototype.novo = function() {
+      if(this.estado === null)
+        this.estado = Estado.NOVO;
+    };
+
     Processo.prototype.pronto = function() {
       if(this.estado !== Estado.ENCERRADO) {
         this.estado = Estado.PRONTO;
@@ -212,6 +259,7 @@
       var random = ((Math.random()*100)+1);
       if(random <= porcentagemDeChance) {
         Escalonador.contadorIOBound++;
+        Simulador.iobound(Escalonador.contadorIOBound);
         return true;
       }
       Escalonador.contadorNormal++;
@@ -221,6 +269,8 @@
     Processo.prototype.esperar = function() {
       if(this.estado === Estado.EM_EXECUCAO) {
         this.estado = Estado.EM_ESPERA;
+        Escalonador.qtdeEmEspera++;
+        Simulador.emEspera(Escalonador.qtdeEmEspera);
         Simulador.alteraProcesso(this.pid, this.estado, this.updateTurnaround());
       }
     };
@@ -242,6 +292,8 @@
         if(this.contadorEspera <= 0) {
           this.contadorEspera = this.ciclosDeEspera;
           this.IOBound = false;
+          Escalonador.qtdeEmEspera--;
+          Simulador.emEspera(Escalonador.qtdeEmEspera);
           this.pronto();
         }
       }
@@ -272,8 +324,14 @@
     //Quantidade de tempo que o escalonador leva para trocar o processo
     quantum: null,
 
-    // Tempo para verificar se o quantum foi atingido
-    tempoDecorrido: 0,
+    //Quantidade processos encerrados no minuto
+    throughput: 0,
+
+    //Quantidade de processos já criados
+    qtdeTotalProcessos: 0,
+
+    //Quantidade de processos já encerrados
+    qtdeTotalEncerrados: 0,
 
     //Tempo de vida default do processo: 30 segundos
     tempoDeVida: 30000,
@@ -308,6 +366,8 @@
 
     //Debug espera
     contadorIOBound: 0,
+
+    qtdeEmEspera: 0,
 
     contadorNormal: 0,
 
@@ -346,7 +406,7 @@
       this.processos = {};
       this.proxPid = null;
       this.processoEmFoco = null;
-      this.tempoDecorrido = 0;
+      this.throughput = 0;
       this.contadorNormal = 0;
       this.contadorIOBound = 0;
 
@@ -373,7 +433,11 @@
 
     geraLoteDeProcessos: function() {
       var qtde = Math.ceil(this.quantidadePorMinuto/60);
+      //Notifica estatística de taxa de criação ao Simulador
+      Simulador.taxaCriacao(qtde);
       if(this.processosNoMinuto >= this.quantidadePorMinuto) {
+        Simulador.throughput(this.throughput);
+        this.throughput = 0;
         if(this.debug) {
           window.console.log("O lote de processos do minuto foi criado");
           window.console.log("NUMERO DE ESPERA: " + this.contadorIOBound);
@@ -449,6 +513,9 @@
         ciclosDeEspera: this.ciclosDeEspera
       });
       this.processos[pid] = novoProcesso;
+      //Reporta alteração no número de processos ao Simulador
+      Simulador.processos(this.qtdeTotalProcessos, this.qtdeTotalEncerrados);
+      this.qtdeTotalProcessos++;
       if(this.debug) {
         window.console.log("Novo processo adicionado");
         window.console.log(this.processosNoMinuto);
@@ -464,6 +531,10 @@
 
     finalizarProcesso: function(pid) {
       delete this.processos[pid];
+      this.throughput++;
+      this.qtdeTotalEncerrados++;
+      //Reporta alteração no número de processos ao Simulador
+      Simulador.processos(this.qtdeTotalProcessos, this.qtdeTotalEncerrados);
       if(this.ultimoIndice > 0) {
         this.ultimoIndice--;
       }
@@ -479,6 +550,7 @@
   //Inicia tudo quando apertado o Iniciar Simulação
   btiniciar.addEventListener("click", function(e){
     e.preventDefault();
+    Simulador.zeraEstatisticas();
     if(Simulador.iniciar()) {
       for(var i = 0, l = comSimulacao.length; i < l; i++)
         comSimulacao[i].className = "sem-simulacao";
