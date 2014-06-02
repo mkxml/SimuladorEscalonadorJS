@@ -409,6 +409,9 @@
       this.throughput = 0;
       this.contadorNormal = 0;
       this.contadorIOBound = 0;
+      this.qtdeEmEspera = 0;
+      this.qtdeTotalProcessos = 0;
+      this.qtdeTotalEncerrados = 0;
 
       if(this.timerMinuto)
         window.clearInterval(this.timerMinuto);
